@@ -1,0 +1,13 @@
+.env
+.vscode/
+src/__pycache__/
+particlescraper/particlescraper/__pycache__
+particlescraper/particlescraper/spiders/__pycache__
+venv-name/
+credentials.json
+token.json
+service_account.json
+data/
+assets/
+cropped/
+test/
