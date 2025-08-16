@@ -37,12 +37,10 @@ def news():
     print(colored(f"News files from {yesterday_date} deleted", "green"))
     print(colored("Started news", "green"))
 
-    clean_data()
 
+def clean_data():
 
-def get_mains():
-
-    """Load articles from JSON file and process them."""
+    """Clean and organize article data, download images, and create content files."""
 
     news_articles = []
 
@@ -52,101 +50,6 @@ def get_mains():
     with open(METADATA_PATH / json_filename) as json_file:
         for line in json_file:
             news_articles.append(json.loads(line))
-
-    #AI highlighting code (commented out)
-    for article in news_articles:
-
-        for index, point in enumerate(article["points"]):
-
-            url = "https://ai.hackclub.com/chat/completions"
-            headers = {
-                "Content-Type": "application/json"
-            }
-            data = {
-
-                "messages": [
-
-                    {
-                        "role": "user",
-
-                        "content":  f"""TASK: 
-
-                                    Take the input text, figure out keywords 
-                                    by pretending you are one of the best 
-                                    journalists in the world, and wrap each of
-                                    those keywords in double asterisks **
-                                    exactly as they appear in the text. Do 
-                                    not change any other part of the text, 
-                                    spacing, or punctuation.
-
-                                    OUTPUT RULES:
-
-                                    1. Return only the modified text, with no 
-                                    explanation, no reasoning, and no additional 
-                                    commentary.
-
-                                    2. Do not output <think> or any reasoning 
-                                    steps.
-
-                                    3. Do not add any headings, quotes, or 
-                                    formatting besides the required ** around 
-                                    each of the keywords.
-
-                                    4. Make sure the double asterisk ** is around
-                                    every single word in the keywords, for exmple
-                                    if 'The Boss ' is picked as keywords, the output
-                                    should be '**The** **Boss**' make sure every 
-                                    keyword is wrapped and not them as a whole
-
-                                    5. Make sure spacing is retained and spaces 
-                                    remain between words encased in ** as well 
-                                    - just like this
-                                    '**The** **Boss**'
-
-                                    6. If the word has an enclitic contraction 
-                                    surround that with ** as well
-                                    
-                                    TEXT: {point}
-                                    
-                                    Your entire output must be only the processed 
-                                    text. If you output anything else, you have 
-                                    failed the task."""
-                }
-
-                ],
-
-                "model": "qwen/qwen3-32b",
-                "include_reasoning": False
-            }
-
-            response = requests.post(url, headers=headers, json=data)
-
-            if response.status_code != 200:
-                print(colored(f"Error: {response.status_code} - {response.text}", "red"))
-
-            else:
-                content = response.json()
-                article["points"][index] = content['choices'][0]['message']['content']
-
-    print(colored("Finished AI highlights", "green"))
-
-    #Clear file
-    with open(METADATA_PATH / json_filename, 'w') as output_file:
-        output_file.write('')
-    
-    # Write processed articles back to file
-    with open(METADATA_PATH / json_filename, 'a') as output_file:
-        for article in news_articles:
-            output_file.write(json.dumps(article) + '\n')
-
-    return news_articles
-
-
-def clean_data():
-
-    """Clean and organize article data, download images, and create content files."""
-
-    news_articles = get_mains()
 
     def download_image(image_url, image_name, article_folder):
 
@@ -194,7 +97,10 @@ def clean_data():
             content_file.write(article["title"][0]+'\n')
 
             for content_line in article["points"]:
-                content_file.write(content_line + '\n')
+                try:
+                    content_file.write(content_line + '\n')
+                except UnicodeEncodeError:
+                    pass
 
         # Download images for this article
         for image_link in article["image-links"]:
@@ -207,8 +113,6 @@ def clean_data():
             image_index += 1
     
     print(colored("Finished clean", "green"))
-
-    make_slides()
 
 def make_slides():
 
@@ -296,63 +200,47 @@ def make_slides():
         f = open(ARTICLE_DATA_PATH / article_dir / "content.txt", 'r')
         f.seek(0)
 
-        all_lines = [line for line in f.readlines() if line.strip()]
+        all_lines = [line for line in f.readlines() if line.strip()] #Ignores last line which is empty
         image_dir = os.listdir(ARTICLE_DATA_PATH / article_dir)
-        image_dir.remove('content.txt')
+        image_dir.remove('content.txt') #We don't want PIL to process content.txt as an image
         index = 0
 
         for image, line in zip(image_dir, all_lines):
-            index += 1
+            
+            index += 1 #Only for final naming purposes doesn't do anything else
 
             try:
                 os.rename(ARTICLE_DATA_PATH / article_dir / image, ARTICLE_DATA_PATH / article_dir / f"final-{index}.png")
                 img = Image.open(ARTICLE_DATA_PATH / article_dir / f"final-{index}.png")
 
-            except (PIL.UnidentifiedImageError, FileNotFoundError) as e:
+            except (PIL.UnidentifiedImageError, FileNotFoundError, PIL.Image.DecompressionBombError, OSError) as e:
                 continue
 
             def write_text(y, line, image):
                 
-                x = 20
+                x = 20 #20px padding gap so it's not congested as hell
                 start_newline = 0
 
                 drw = ImageDraw.Draw(img)
 
+                line = line.replace('\n', '') 
+
                 while start_newline < len(line):
-
-                    if len(line[start_newline:start_newline+46].split(' ')[:-1]) > 1:
-                        threshold = line[start_newline:start_newline+46].split(' ')[:-1]
-
-                    else:
-                        threshold = line[start_newline:start_newline+46].split(' ')
                     
-                    threshold = [word.strip() for word in threshold]
-                    threshold = [word for word in threshold if word != "**"]
-
-                    this_line = "".join(threshold)
-
                     #46 max chars (40px+40px padding, 1000 box-space/ 22px width per letter)
 
-                    pos = 0
+                    if len(line[start_newline:start_newline+46].split(' ')[:-1]) > 1:
+                        threshold = line[start_newline:start_newline+46].split(' ')[:-1] #Picks all words except the last one, incase it might have been chopped off
 
-                    for word in threshold:
+                    elif len(line[start_newline:start_newline+46].split(' ')[:-1]) == 1: #If the list has only 2 pick all of them
+                        threshold = line[start_newline:start_newline+46].split(' ')
 
-                        if word.startswith("**") == True and word.endswith("**") == True:
+                    else:
+                        print(line)
+                        break
 
-                            word = word[2:-2]
-                            print(word)
-
-                            x_offset = int((1080 - (len(this_line) * 22))/2) + (22 * pos)
-                            drw.text((x+x_offset, y), word, font=get_font(), spacing=2, fill="green", align="justify")
-
-                            pos = pos + len(word)
-                        
-                        else:
-
-                            x_offset = int((1080 - (len(this_line) * 22))/2) + (22 * pos)
-                            drw.text((x+x_offset, y), word, font=get_font(), spacing=2, align="justify")
-
-                            pos += len(word)
+                    this_line = " ".join(threshold)
+                    drw.text((x+x_offset, y), this_line, font=get_font(), spacing=2)
 
                     start_newline += len(this_line)
                     y += 37
