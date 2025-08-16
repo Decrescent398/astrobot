@@ -1,4 +1,5 @@
 import os
+import threading
 from dotenv import load_dotenv
 from termcolor import colored
 import discord
@@ -15,8 +16,6 @@ OWNER_ID = os.getenv('OWNER_ID')
 
 ASTROBOT_PROFILE_ASSET = "https://i.ibb.co/KzD8vrjM/Screenshot-2025-03-27-202917.png"
 
-news()
-
 # Initialize Discord bot
 bot = discord.Bot(intents=discord.Intents.all())
 
@@ -30,7 +29,12 @@ async def pi(ctx):
 
 @bot.slash_command(name="news", description="Command to start news")
 async def handle_news(ctx):
-    await ctx.respond("Posted news for today, check back in 24hrs for particle to update")
+    await ctx.defer()
+    
+    t1 = threading.Thread(target=news)
+    t1.start()
+    
+    await ctx.followup.send("Posted news for today, check back in 24hrs for particle to update")
 
 @bot.slash_command(name="add-member", description="Create new user profile")
 @discord.default_permissions(administrator=True)
@@ -197,46 +201,6 @@ async def handle_submit(ctx, link):
     else:
         
         await ctx.respond("That link does not work!")
-
-
-# Commented out post functionality
-# class PostTypeSelect(discord.ui.Select):
-#     def __init__(self, link):
-#         self.link = link  # Store link before calling super()
-        
-#         options = [
-#             discord.SelectOption(label="News - Instagram Carousel"),
-#             discord.SelectOption(label="Blog - Instagram Carousel"),
-#             discord.SelectOption(label="Blog - Medium"),
-#         ]
-
-#         super().__init__(
-#             min_values=1,
-#             max_values=1,
-#             options=options
-#         )
-
-#     async def callback(self, interaction: discord.Interaction):
-#         print(f"[DEBUG] Selection: {self.values[0]}")
-#         print(f"[DEBUG] Link passed in: {self.link}")
-
-#         if self.values[0] == "Blog - Instagram Carousel":
-#             get_summary(self.link)
-
-#         await interaction.response.send_message("Posted!")
-
-
-# class PostView(discord.ui.View):
-#     def __init__(self, link):
-#         super().__init__(timeout=60)
-#         self.add_item(PostTypeSelect(link))
-
-
-# @bot.slash_command(name="post", description="Post")
-# @discord.default_permissions(administrator=True)
-# async def handle_post(ctx, link: str):
-#     await ctx.respond("Choose a post type:", view=PostView(link))
-
 
 # Run the bot
 bot.run(TOKEN)

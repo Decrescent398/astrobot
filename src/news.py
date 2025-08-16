@@ -4,6 +4,8 @@ from termcolor import colored
 import PIL
 from PIL import Image, ImageFilter, ImageDraw, ImageFont
 import urllib.request
+import asyncio
+import sys
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from particlescraper.particlescraper.spiders.newsscraper import NewsScraper
@@ -36,6 +38,8 @@ def news():
 
     print(colored(f"News files from {yesterday_date} deleted", "green"))
     print(colored("Started news", "green"))
+    
+    clean_data()
 
 
 def clean_data():
@@ -113,6 +117,8 @@ def clean_data():
             image_index += 1
     
     print(colored("Finished clean", "green"))
+    
+    make_slides()
 
 def make_slides():
 
@@ -157,7 +163,7 @@ def make_slides():
                         box = (8, 8, 56, 56)
                         img.paste(ico, box)
 
-                except (IndexError, FileNotFoundError):
+                except (IndexError, FileNotFoundError, PIL.UnidentifiedImageError):
                     pass
 
                 img = img.resize((1080, 1080))
