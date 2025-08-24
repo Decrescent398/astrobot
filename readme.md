@@ -1,6 +1,3 @@
-Stellar-Minds
-=============
-
 About Astrobot
 ----------------------
 
