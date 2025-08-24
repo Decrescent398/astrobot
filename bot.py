@@ -1,44 +1,53 @@
-import os
-import threading
+import os, threading, time
+import schedule
+import discord
 from dotenv import load_dotenv
 from termcolor import colored
-import discord
-
+from discord.ext import commands, tasks
 from src.tasks import *
 from src.posts import *
 from src.news import *
 
 # Load environment variables
 load_dotenv()
-TOKEN = os.getenv('TOKEN')
-GUILD_ID = os.getenv('GUILD_ID')
-OWNER_ID = os.getenv('OWNER_ID')
+TOKEN = os.getenv('BOT-TOKEN')
+GUILD_ID = os.getenv('GUILD-ID')
+OWNER_ID = os.getenv('OWNER-ID')
 
 ASTROBOT_PROFILE_ASSET = "https://i.ibb.co/KzD8vrjM/Screenshot-2025-03-27-202917.png"
 
+scheduler = schedule.Scheduler()
+scheduler.every().day.at("09:00").do(news)
+def run_schedules():
+    
+    print(colored("Activated news and task schedule", "green"))
+    
+    while True:
+        
+        scheduler.run_pending()
+        time.sleep(60)
+        
+t1 = threading.Thread(target=run_schedules)
+t1.start()
+    
 # Initialize Discord bot
 bot = discord.Bot(intents=discord.Intents.all())
 
 @bot.event
 async def on_ready():
     print(colored("Bot is online", "green"))
+    reminder_loop.start()
+    handle_create_task.start()
 
 @bot.slash_command(name="pi", description="just pi")
 async def pi(ctx):
+    
     await ctx.respond("3.141592653589793238462643")
-
-@bot.slash_command(name="news", description="Command to start news")
-async def handle_news(ctx):
-    await ctx.defer()
-    
-    t1 = threading.Thread(target=news)
-    t1.start()
-    
-    await ctx.followup.send("Posted news for today, check back in 24hrs for particle to update")
 
 @bot.slash_command(name="add-member", description="Create new user profile")
 @discord.default_permissions(administrator=True)
 async def handle_add_member(ctx, member: discord.Member):
+    
     add_member(member.display_name)
 
     member_embed = discord.Embed(
@@ -51,41 +60,38 @@ async def handle_add_member(ctx, member: discord.Member):
 
     await ctx.respond(embed=member_embed)
 
-@bot.slash_command(name="create-task", description="Create user task")
-@discord.default_permissions(administrator=True)
-async def handle_create_task(ctx):
-    
-    if not check_overdue(ctx.author.display_name):
-        
-        if check_due(ctx.author.display_name) != "e" and check_due(ctx.author.display_name) < 0:
-            overdue_task(ctx.author.display_name)
+@tasks.loop(hours=14*24)
+async def handle_create_task():
             
-        announcement_channel_id = 1393901179490275491
-        active_role_id = 1393515184072691794
-        announcement_channel = bot.get_channel(announcement_channel_id)
-        create_task_embed = discord.Embed(
-                    title="Announcement!",
-                    description = f"<@&{active_role_id}> new tasks assigned",
-                    color=ctx.author.accent_color
-                )
-        create_task_embed.set_author(name="Astrobot", icon_url=ASTROBOT_PROFILE_ASSET)
+    announcement_channel_id = 1393901179490275491
+    active_role_id = 1393515184072691794
+    announcement_channel = bot.get_channel(announcement_channel_id)
+    create_task_embed = discord.Embed(
+                title="Announcement!",
+                description = f"<@&{active_role_id}> new tasks assigned",
+            )
+    create_task_embed.set_author(name="Astrobot", icon_url=ASTROBOT_PROFILE_ASSET)
+    create_task()
+    await announcement_channel.send(embed = create_task_embed)
         
-        await announcement_channel.send(embed = create_task_embed)
-        create_task()
-        
-        await ctx.respond("Created tasks")
-        
-    else:
-        
-        await ctx.respond("3 strikes for @member!!!")
-
+@tasks.loop(hours=12*24)
+async def reminder_loop():
+    announcement_channel_id = 1393901179490275491
+    active_role_id = 1393515184072691794
+    announcement_channel = bot.get_channel(announcement_channel_id)
+    create_task_embed = discord.Embed(
+                title="Announcement!",
+                description = f"<@&{active_role_id}> Tasks due in 2 days",
+            )
+    create_task_embed.set_author(name="Astrobot", icon_url=ASTROBOT_PROFILE_ASSET)
+    await announcement_channel.send(embed = create_task_embed)
 
 @bot.slash_command(name="view-task", description="View your assigned tasks")
 async def handle_view_task(ctx):
     
     try:
         
-        if not check_submit(ctx.author.display_name):
+        if check_submit(ctx.author.display_name) == False:
             
             if check_due(ctx.author.display_name) > 0:
                 task_embed = discord.Embed(
@@ -161,7 +167,10 @@ class ButtonView(discord.ui.View):
         self.remove_item(button)
         
         await self.message.edit(embed=self.embed, view=self)
-        await owner.send(embed=self.embed)
+        
+        t2 = threading.Thread(target=read_article, args=(extract_doc_id(self.link),))
+        t2.start()
+        t2.join()
 
     @discord.ui.button(label="Review", style=discord.ButtonStyle.secondary)
     async def button_callback(self, button, interaction):
@@ -179,7 +188,7 @@ class ButtonView(discord.ui.View):
 @bot.slash_command(name="submit", description="Submit your tasks", guild_ids=[GUILD_ID])
 async def handle_submit(ctx, link):
     
-    submit_channel_id = 1397207767898394755
+    submit_channel_id = 1394020514804273163 #1397207767898394755
     submit_channel = bot.get_channel(submit_channel_id)
 
     if extract_doc_id(link):
@@ -201,6 +210,22 @@ async def handle_submit(ctx, link):
     else:
         
         await ctx.respond("That link does not work!")
+    
+@bot.slash_command(name="add-topics", description="Create new topics for blogs or roundups")
+@discord.default_permissions(administrator=True)
+async def handle_add_topics(ctx, ttype, name):
+    
+    t4 = threading.Thread(target=add_topics, args=(ttype, name))
+    t4.start()
+    t4.join()
+    
+    member_embed = discord.Embed(
+        title=f"Added new topic!",
+    )
+
+    member_embed.set_author(name="Astrobot", icon_url=ASTROBOT_PROFILE_ASSET)
+
+    await ctx.respond(embed=member_embed)
 
 # Run the bot
 bot.run(TOKEN)
