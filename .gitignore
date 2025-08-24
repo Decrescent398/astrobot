@@ -8,6 +8,5 @@ credentials.json
 token.json
 service_account.json
 data/
-assets/
 cropped/
 test/

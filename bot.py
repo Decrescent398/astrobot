@@ -1,11 +1,11 @@
-import os, threading, time
-import schedule
+import os, threading, time, re
+import asyncio
 import discord
 from dotenv import load_dotenv
 from termcolor import colored
+from multiprocessing import Process
 from discord.ext import commands, tasks
 from src.tasks import *
-from src.posts import *
 from src.news import *
 
 # Load environment variables
@@ -13,38 +13,26 @@ load_dotenv()
 TOKEN = os.getenv('BOT-TOKEN')
 GUILD_ID = os.getenv('GUILD-ID')
 OWNER_ID = os.getenv('OWNER-ID')
+BLOG_ID = os.getenv('BLOG-ID')
+POSTS_ID = os.getenv('POSTS-ID')
 
 ASTROBOT_PROFILE_ASSET = "https://i.ibb.co/KzD8vrjM/Screenshot-2025-03-27-202917.png"
 
-scheduler = schedule.Scheduler()
-scheduler.every().day.at("09:00").do(news)
-def run_schedules():
-    
-    print(colored("Activated news and task schedule", "green"))
-    
-    while True:
-        
-        scheduler.run_pending()
-        time.sleep(60)
-        
-t1 = threading.Thread(target=run_schedules)
-t1.start()
-    
 # Initialize Discord bot
 bot = discord.Bot(intents=discord.Intents.all())
 
 @bot.event
 async def on_ready():
     print(colored("Bot is online", "green"))
-    reminder_loop.start()
-    handle_create_task.start()
+    # reminder_loop.start()
+    # handle_create_task.start()
 
 @bot.slash_command(name="pi", description="just pi")
 async def pi(ctx):
     
     await ctx.respond("3.141592653589793238462643")
 
-@bot.slash_command(name="add-member", description="Create new user profile")
+@bot.slash_command(name="add-member", description="Create new user profile", guild_ids=[GUILD_ID])
 @discord.default_permissions(administrator=True)
 async def handle_add_member(ctx, member: discord.Member):
     
@@ -59,7 +47,24 @@ async def handle_add_member(ctx, member: discord.Member):
     member_embed.set_thumbnail(url=member.avatar)
 
     await ctx.respond(embed=member_embed)
+    
+@bot.slash_command(name="news", description="Command to start news", guild_ids=[GUILD_ID])
+@discord.default_permissions(administrator=True)
+async def handle_news(ctx):
+    posts_owner = await bot.fetch_user(POSTS_ID)
+    await ctx.defer()
+    
+    await news()
+    
+    await ctx.followup.send("Posted news for today, check back in 24hrs for particle to update")
+    for news_article in os.listdir("data/out/articles/"):
+        await posts_owner.send(f"Here's the files to post on insta for {news_article}:",\
+            files=[discord.File(f"data/out/articles/{news_article}/{image}") \
+                for image in os.listdir(f"data/out/articles/{news_article}/") \
+                    if image.endswith('.png')])
 
+    await posts_owner.send("Tysmmmmmmmmmmmmmm - Decrescent")
+    
 @tasks.loop(hours=14*24)
 async def handle_create_task():
             
@@ -158,7 +163,7 @@ class ButtonView(discord.ui.View):
 
     async def update_message_finished(self, user, button):
         
-        owner = await bot.fetch_user(OWNER_ID)
+        blog_owner = await bot.fetch_user(BLOG_ID)
         self.embed = discord.Embed(
             title=f"{user.display_name} finished reviewing {self.author.display_name}'s task:\n{self.link}",
             color=self.author.accent_color
@@ -167,10 +172,7 @@ class ButtonView(discord.ui.View):
         self.remove_item(button)
         
         await self.message.edit(embed=self.embed, view=self)
-        
-        t2 = threading.Thread(target=read_article, args=(extract_doc_id(self.link),))
-        t2.start()
-        t2.join()
+        await blog_owner.send(f'Please post this on medium:\n{self.link}\n(Thank youuuuuuuuuuuuuuuuuuuuuu - Decrescent)')
 
     @discord.ui.button(label="Review", style=discord.ButtonStyle.secondary)
     async def button_callback(self, button, interaction):
@@ -190,6 +192,13 @@ async def handle_submit(ctx, link):
     
     submit_channel_id = 1394020514804273163 #1397207767898394755
     submit_channel = bot.get_channel(submit_channel_id)
+
+    def extract_doc_id(url):
+        match = re.search(r'/d/([a-zA-Z0-9_-]+)', url)
+        if match:
+            return match.group(1)
+        else:
+            return None
 
     if extract_doc_id(link):
         
@@ -227,5 +236,7 @@ async def handle_add_topics(ctx, ttype, name):
 
     await ctx.respond(embed=member_embed)
 
+if __name__ == "__main__":
 # Run the bot
-bot.run(TOKEN)
+    bot.run(TOKEN)
+    news_loop.start()

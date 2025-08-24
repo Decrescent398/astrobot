@@ -1,16 +1,18 @@
-import requests, os, shutil, datetime, json, re
+import requests, os, shutil, datetime, json, re, sys
+import PIL
+import asyncio
+import subprocess
+import urllib.request
+from PIL import Image, ImageFilter, ImageDraw, ImageFont
 from pathlib import Path
 from termcolor import colored
-import PIL
-from PIL import Image, ImageFilter, ImageDraw, ImageFont
-import urllib.request
-import asyncio
-import sys
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
+from scrapy.utils.log import configure_logging
+from scrapy.utils.defer import ensureDeferred
+from twisted.internet import asyncioreactor
+from twisted.internet import defer
 from particlescraper.particlescraper.spiders.newsscraper import NewsScraper
-
-from src.posts import *
 
 # Output directory paths
 OUTPUT_FOLDER = Path("data/out/")
@@ -18,15 +20,36 @@ METADATA_PATH = OUTPUT_FOLDER / "meta"
 ARTICLE_DATA_PATH = OUTPUT_FOLDER / "articles"
 PARTICLE_IMAGE_ASSET = Path("C:/Users/hridd/Desktop/Docs/Codespace/Astrobot/assets/poweredbyparticle.png")
 
-def news():
+async def news():
+    
+    # Clean old JSON files
+    if len(os.listdir(METADATA_PATH)) >= 1:
+        for json_file in os.listdir(METADATA_PATH):
+            os.remove(METADATA_PATH / json_file)
+    
+    # Clean old article directories
+    if len(os.listdir(ARTICLE_DATA_PATH)) >= 1:
+        for article_dir in os.listdir(ARTICLE_DATA_PATH):
+            shutil.rmtree(ARTICLE_DATA_PATH / article_dir)
+    
+    yesterday_date = (datetime.date.today() - datetime.timedelta(1)).strftime("%d %b %Y")
 
     """Main news function that starts news scraping."""
+    # crawler_process = CrawlerProcess(get_project_settings())
+    # crawler_process.crawl(NewsScraper)
+    # crawler_process.start()
     
-    # Start news scraping process
-    crawler_process = CrawlerProcess(get_project_settings())
-    crawler_process.crawl(NewsScraper)
-    crawler_process.start()
+    await asyncio.to_thread(
+        subprocess.run,
+        [sys.executable, "-m", "scrapy", "crawl", "particle"],
+        cwd="C:/Users/hridd/Desktop/Docs/Codespace/Astrobot/particlescraper",
+        check=True
+    )
 
+    print(colored(f"News files from {yesterday_date} deleted", "green"))
+    print(colored("Started news", "green"))
+    # Start news scraping process
+    clean_data()
     print(colored("Started news", "green"))
 
 def clean_data():
@@ -38,9 +61,12 @@ def clean_data():
     today_date = datetime.date.today()
     json_filename = f"news-output-{today_date}.json"
     
-    with open(METADATA_PATH / json_filename) as json_file:
-        for line in json_file:
-            news_articles.append(json.loads(line))
+    try:
+        with open(METADATA_PATH / json_filename) as json_file:
+            for line in json_file:
+                news_articles.append(json.loads(line))
+    except FileNotFoundError:
+        return
 
     def download_image(image_url, image_name, article_folder):
 
