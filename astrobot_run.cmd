@@ -1,0 +1,1 @@
+python C:\Users\hridd\Desktop\Docs\Codespace\Astrobot\localrun.py
