@@ -10,37 +10,24 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from particlescraper.particlescraper.spiders.newsscraper import NewsScraper
 
+from src.posts import *
+
 # Output directory paths
 OUTPUT_FOLDER = Path("data/out/")
 METADATA_PATH = OUTPUT_FOLDER / "meta"
 ARTICLE_DATA_PATH = OUTPUT_FOLDER / "articles"
+PARTICLE_IMAGE_ASSET = Path("C:/Users/hridd/Desktop/Docs/Codespace/Astrobot/assets/poweredbyparticle.png")
 
 def news():
 
-    """Main news function that cleans old files and starts news scraping."""
-
-    # Clean old JSON files
-    if len(os.listdir(METADATA_PATH)) >= 1:
-        for json_file in os.listdir(METADATA_PATH):
-            os.remove(METADATA_PATH / json_file)
-    
-    # Clean old article directories
-    if len(os.listdir(ARTICLE_DATA_PATH)) >= 1:
-        for article_dir in os.listdir(ARTICLE_DATA_PATH):
-            shutil.rmtree(ARTICLE_DATA_PATH / article_dir)
-    
-    yesterday_date = (datetime.date.today() - datetime.timedelta(1)).strftime("%d %b %Y")
+    """Main news function that starts news scraping."""
     
     # Start news scraping process
     crawler_process = CrawlerProcess(get_project_settings())
     crawler_process.crawl(NewsScraper)
     crawler_process.start()
 
-    print(colored(f"News files from {yesterday_date} deleted", "green"))
     print(colored("Started news", "green"))
-    
-    clean_data()
-
 
 def clean_data():
 
@@ -69,10 +56,10 @@ def clean_data():
             with urllib.request.urlopen(image_request, timeout=10) as response:
 
                 if image_name.endswith("-icon"):
-                    image_path = ARTICLE_DATA_PATH / f"{article_folder}/{image_name}.png"
+                    image_path = ARTICLE_DATA_PATH / article_folder / f"{image_name}.png"
 
                 else:
-                    image_path = ARTICLE_DATA_PATH / f"{article_folder}/{image_name}.png"
+                    image_path = ARTICLE_DATA_PATH / article_folder / f"{image_name}.png"
 
                 with open(image_path, 'wb') as image_file:
                     image_file.write(response.read())
@@ -210,6 +197,8 @@ def make_slides():
         image_dir = os.listdir(ARTICLE_DATA_PATH / article_dir)
         image_dir.remove('content.txt') #We don't want PIL to process content.txt as an image
         index = 0
+        
+        shutil.copy(PARTICLE_IMAGE_ASSET, ARTICLE_DATA_PATH / article_dir / "final-7-particle-icon.png")
 
         for image, line in zip(image_dir, all_lines):
             
@@ -244,9 +233,10 @@ def make_slides():
                     else:
                         print(line)
                         break
-
+                    
                     this_line = " ".join(threshold)
-                    drw.text((x+x_offset, y), this_line, font=get_font(), spacing=2)
+                    x_offset = int((1080 - (len(this_line) * 22))/2)
+                    drw.text((x+x_offset, y), this_line, font=get_font(), spacing=4)
 
                     start_newline += len(this_line)
                     y += 37
@@ -255,7 +245,7 @@ def make_slides():
 
             if "blank" in image:
 
-                write_text(y=0, line=line, image=img)
+                write_text(y=540, line=line, image=img)
                 
             else:
 
