@@ -34,6 +34,7 @@ async def on_ready():
 @bot.event
 async def on_member_join(member):
     role1 = discord.utils.get(member.guild.roles, name="High School")
+    role2 = discord.utils.get(member.guild.roles, name="")
     if role1:
         await member.add_roles(role1)
         add_member(uid=member.id)
@@ -295,6 +296,18 @@ async def handle_submit(ctx, link):
     
     submit_channel_id = 1397207767898394755
     submit_channel = bot.get_channel(submit_channel_id)
+    
+    conn = sqlite3.connect(RELATIVE_DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+              
+              UPDATE members 
+              SET task_status = 0
+              WHERE uid = ?
+              
+              ''', (ctx.author.id,))
+    conn.commit()
+    conn.close()
 
     def extract_doc_id(url):
         match = re.search(r'/d/([a-zA-Z0-9_-]+)', url)

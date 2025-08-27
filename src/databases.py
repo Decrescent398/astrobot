@@ -77,7 +77,8 @@ def create_task():
                     UPDATE members
                     SET task_type = ?,
                         due_date = ?,
-                        task_topic = ?
+                        task_topic = ?,
+                        task_status = 1,
                     WHERE uid = ? AND status = 1;
                     
                     ''',(ttd[0], ttd[1], get_topic(ttd[0]), member_id))
