@@ -5,8 +5,9 @@ from dotenv import load_dotenv
 from termcolor import colored
 from multiprocessing import Process
 from discord.ext import commands, tasks
-from src.tasks import *
+# from src.tasks import *
 from src.news import *
+from src.databases import *
 
 # Load environment variables
 load_dotenv()
@@ -26,45 +27,14 @@ async def on_ready():
     print(colored("Bot is online", "green"))
     # reminder_loop.start()
     # handle_create_task.start()
-
-@bot.slash_command(name="pi", description="just pi")
-async def pi(ctx):
     
-    await ctx.respond("3.141592653589793238462643")
-
-@bot.slash_command(name="add-member", description="Create new user profile", guild_ids=[GUILD_ID])
-@discord.default_permissions(administrator=True)
-async def handle_add_member(ctx, member: discord.Member):
-    
-    add_member(member.display_name)
-
-    member_embed = discord.Embed(
-        title=f"Added user {member.display_name}",
-        color=member.accent_color
-    )
-
-    member_embed.set_author(name="Astrobot", icon_url=ASTROBOT_PROFILE_ASSET)
-    member_embed.set_thumbnail(url=member.avatar)
-
-    await ctx.respond(embed=member_embed)
-    
-@bot.slash_command(name="news", description="Command to start news", guild_ids=[GUILD_ID])
-@discord.default_permissions(administrator=True)
-async def handle_news(ctx):
-    posts_owner = await bot.fetch_user(POSTS_ID)
-    await ctx.defer()
-    
-    await news()
-    
-    await ctx.followup.send("Posted news for today, check back in 24hrs for particle to update")
-    for news_article in os.listdir("data/out/articles/"):
-        await posts_owner.send(f"Here's the files to post on insta for {news_article}:",\
-            files=[discord.File(f"data/out/articles/{news_article}/{image}") \
-                for image in os.listdir(f"data/out/articles/{news_article}/") \
-                    if image.endswith('.png')])
-
-    await posts_owner.send("Tysmmmmmmmmmmmmmm - Decrescent")
-    
+@bot.event
+async def on_member_join(member):
+    role1 = discord.utils.get(member.guild.roles, name="High School")
+    if role1:
+        await member.add_roles(role1)
+        add_member(uid=member.id)
+        
 @tasks.loop(hours=14*24)
 async def handle_create_task():
             
@@ -91,6 +61,136 @@ async def reminder_loop():
     create_task_embed.set_author(name="Astrobot", icon_url=ASTROBOT_PROFILE_ASSET)
     await announcement_channel.send(embed = create_task_embed)
 
+@bot.slash_command(name="pi", description="just pi")
+async def pi(ctx):
+    
+    await ctx.respond("3.141592653589793238462643")
+    
+@bot.slash_command(name="news", description="Command to start news", guild_ids=[GUILD_ID])
+@discord.default_permissions(administrator=True)
+async def handle_news(ctx):
+    posts_owner = await bot.fetch_user(POSTS_ID)
+    await ctx.defer()
+    
+    await news()
+    
+    await ctx.followup.send("Posted news for today, check back in 24hrs for particle to update")
+    for news_article in os.listdir("data/out/articles/"):
+        await posts_owner.send(f"Here's the files to post on insta for {news_article}:",\
+            files=[discord.File(f"data/out/articles/{news_article}/{image}") \
+                for image in os.listdir(f"data/out/articles/{news_article}/") \
+                    if image.endswith('.png')])
+
+    await posts_owner.send("Tysmmmmmmmmmmmmmm - Decrescent")
+
+class SetStatusView(discord.ui.View):
+    
+    def __init__(self, ctx):
+        
+        super().__init__(timeout=None)
+        
+        self.embed = discord.Embed(
+            title=f'Set Activity Status'
+        )
+        
+        self.member = ctx.author
+        
+        self.channel_exists = False
+        
+        self.active_category = discord.utils.get(self.member.guild.categories, name="1-on-1-active")
+        self.inactive_category = discord.utils.get(self.member.guild.categories, name="1-on-1-inactive")
+        
+        self.active_role = discord.utils.get(self.member.guild.roles, name="Active")
+        self.inactive_role = discord.utils.get(self.member.guild.roles, name="Inactive")
+    
+    @discord.ui.button(label="Active", style=discord.ButtonStyle.success)
+    async def set_status_active(self, button: discord.ui.button, interaction: discord.Interaction):
+        
+        self.channel_exists = False
+        
+        active_embed = discord.Embed(
+            title="Set Activity Status as: Active",
+            color=discord.Color.green()
+        )
+        self.embed = active_embed
+        
+        update_status(uid=self.member.id, status=1)
+        
+        if self.inactive_role in self.member.roles:
+            
+            await self.member.remove_roles(self.inactive_role)
+        
+        await self.member.add_roles(self.active_role)
+        
+        user_channel = None  # Initialize channel variable
+        
+        for channel in self.member.guild.channels:
+            
+            if isinstance(channel, discord.TextChannel) and str(self.member.id) == channel.topic:
+                
+                await channel.edit(category=self.active_category)
+                self.channel_exists = True
+                user_channel = channel  # Store the channel reference
+                
+        if self.channel_exists == False:
+            
+            user_channel = await self.member.guild.create_text_channel(self.member.display_name, category=self.active_category)  # Store the created channel
+            self.channel_exists = True
+        
+        await bot.wait_until_ready()
+        perms = discord.PermissionOverwrite(view_channel=True, send_messages=True)
+        
+        await user_channel.set_permissions(self.member, overwrite=perms)
+        await user_channel.edit(topic=self.member.id)
+        await interaction.response.edit_message(embed=self.embed, view=None)
+        
+    @discord.ui.button(label="Inactive", style=discord.ButtonStyle.danger)
+    async def set_status_inactive(self, button: discord.ui.button, interaction:discord.Interaction):
+        
+        self.channel_exists = False
+        
+        inactive_embed = discord.Embed(
+            title="Set Activity Status as: Inactive",
+            color=discord.Color.red()
+        )
+        self.embed = inactive_embed
+        
+        update_status(uid=self.member.id, status=0)
+        
+        if self.active_role in self.member.roles:
+            
+            await self.member.remove_roles(self.active_role)
+        
+        await self.member.add_roles(self.inactive_role)
+        
+        user_channel = None  # Initialize channel variable
+        
+        for channel in self.member.guild.channels:
+            
+            if isinstance(channel, discord.TextChannel) and str(self.member.id) == channel.topic:
+                
+                await channel.edit(category=self.inactive_category)
+                self.channel_exists = True
+                user_channel = channel  # Store the channel reference
+                
+        if self.channel_exists == False:
+            
+            user_channel = await self.member.guild.create_text_channel(self.member.display_name, category=self.inactive_category)  # Store the created channel
+            self.channel_exists = True
+
+        await bot.wait_until_ready()
+        perms = discord.PermissionOverwrite(view_channel=True, send_messages=True)
+        
+        await user_channel.set_permissions(self.member, overwrite=perms)
+        await user_channel.edit(topic=self.member.id)
+        await interaction.response.edit_message(embed=self.embed, view=None)  
+
+@bot.slash_command(name="set-status", description="Set your authorship status!", guild_ids=[GUILD_ID])
+async def handle_set_status(ctx):
+    
+    activity_view = SetStatusView(ctx)
+    await ctx.respond(embed=activity_view.embed, view=activity_view)
+    
 @bot.slash_command(name="view-task", description="View your assigned tasks")
 async def handle_view_task(ctx):
     
