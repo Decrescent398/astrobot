@@ -3,9 +3,10 @@ import asyncio
 import discord
 from dotenv import load_dotenv
 from termcolor import colored
+from pathlib import Path
 from multiprocessing import Process
 from discord.ext import commands, tasks
-# from src.tasks import *
+import sqlite3
 from src.news import *
 from src.databases import *
 
@@ -18,6 +19,8 @@ BLOG_ID = os.getenv('BLOG-ID')
 POSTS_ID = os.getenv('POSTS-ID')
 
 ASTROBOT_PROFILE_ASSET = "https://i.ibb.co/KzD8vrjM/Screenshot-2025-03-27-202917.png"
+
+RELATIVE_DB_PATH = Path('data/members.db')
 
 # Initialize Discord bot
 bot = discord.Bot(intents=discord.Intents.all())
@@ -43,7 +46,7 @@ async def handle_create_task():
     announcement_channel = bot.get_channel(announcement_channel_id)
     create_task_embed = discord.Embed(
                 title="Announcement!",
-                description = f"<@&{active_role_id}> new tasks assigned",
+                #description = f"<@&{active_role_id}> new tasks assigned",
             )
     create_task_embed.set_author(name="Astrobot", icon_url=ASTROBOT_PROFILE_ASSET)
     create_task()

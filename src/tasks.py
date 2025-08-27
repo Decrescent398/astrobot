@@ -4,53 +4,24 @@ from pathlib import Path
 TOPIC_FILEPATH = Path("data/topics/")
 MEMBER_FILEPATH = Path("data/members/")
 
-def add_member(member: str):
-    
-    with open(MEMBER_FILEPATH / f"{member}.txt", 'w', newline='') as df:
-        
-        pass
-
-def create_task():
+def get_task_type_and_deadline():
     """Create a new task for a member with appropriate deadline based on task type."""
 
-    for member_file in os.listdir(MEMBER_FILEPATH):
-        task_deadline = None
-        task = None
-        task_type = random.randint(1, 2)
+    task_deadline = None
+    task = None
+    task_type = random.randint(1, 2)
 
-        if task_type == 1:
-            
-            task_deadline = datetime.date.today() + datetime.timedelta(days=14)
-            task = "Roundup"
-            
-        else:
-            
-            task_deadline = datetime.date.today() + datetime.timedelta(days=14)
-            task = "Blog"
-
-        with open(MEMBER_FILEPATH / member_file, 'a') as f:
-            f.write(f"\nCurrent task: {task}, due by {task_deadline} - Topic: {get_topic(task)}")
-
-
-def check_due(member_name: str):
-    
-    """Check how many days remain until the member's task deadline."""
-    
-    with open(MEMBER_FILEPATH / f"{member_name}.txt", 'r') as member_file:
-        last_line = member_file.readlines()[-1]
+    if task_type == 1:
         
-        try:
-            
-            comma_position = last_line.index(',')
-            due_date_str = last_line[comma_position + 9:comma_position + 19].strip()
-            due_date = datetime.datetime.strptime(due_date_str, "%Y-%m-%d").date()
-            days_remaining = (due_date - datetime.date.today()).days
-            
-            return days_remaining
+        task_deadline = datetime.date.today() + datetime.timedelta(days=14)
+        task = "Roundup"
         
-        except Exception as e:
-            print(e)
-            return "e"
+    else:
+        
+        task_deadline = datetime.date.today() + datetime.timedelta(days=14)
+        task = "Blog"
+ 
+    return (task, task_deadline)
 
 def get_topic(task_name):
     
@@ -68,7 +39,7 @@ def get_topic(task_name):
         
         with open(TOPIC_FILEPATH / "roundup-topics.txt", 'w') as f:
             for line in lines:
-                f.write(line+'\n')
+                f.write(line)
         
         return topic
         
@@ -86,7 +57,7 @@ def get_topic(task_name):
         
         with open(TOPIC_FILEPATH / "blog-topics.txt", 'w') as f:
             for line in lines:
-                f.write(line+'\n')
+                f.write(line)
         
         return topic
     
@@ -103,7 +74,7 @@ def add_topics(ttype, task):
         f = open(TOPIC_FILEPATH / "blog-topics.txt", 'a')
         f.write(task+'\n')
         f.close()
-
+        
 def view_task(member_name: str):
     
     """View the current task for a member and days remaining."""
@@ -124,6 +95,26 @@ def view_task(member_name: str):
         except:
             return "No tasks for now"
 
+        
+def check_due(member_name: str):
+    
+    """Check how many days remain until the member's task deadline."""
+    
+    with open(MEMBER_FILEPATH / f"{member_name}.txt", 'r') as member_file:
+        last_line = member_file.readlines()[-1]
+        
+        try:
+            
+            comma_position = last_line.index(',')
+            due_date_str = last_line[comma_position + 9:comma_position + 19].strip()
+            due_date = datetime.datetime.strptime(due_date_str, "%Y-%m-%d").date()
+            days_remaining = (due_date - datetime.date.today()).days
+            
+            return days_remaining
+        
+        except Exception as e:
+            print(e)
+            return "e"
 
 def submit_task(member_name: str):
     
