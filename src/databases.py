@@ -31,8 +31,6 @@ def add_member(uid):
     
     with sqlite3.connect(db_path) as con:
         
-        create_table()
-        
         c = con.cursor()
         
         c.execute('''

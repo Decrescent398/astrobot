@@ -382,17 +382,17 @@ async def handle_submit(ctx, link):
 
                     await ctx.respond(embed=submitted_embed)
                     
-                        conn = sqlite3.connect(RELATIVE_DB_PATH)
-                        c = conn.cursor()
-                        c.execute('''
-                                
-                                UPDATE members 
-                                SET task_status = 0
-                                WHERE uid = ?
-                                
-                                ''', (ctx.author.id,))
-                        conn.commit()
-                        conn.close()
+                    conn = sqlite3.connect(RELATIVE_DB_PATH)
+                    c = conn.cursor()
+                    c.execute('''
+                            
+                            UPDATE members 
+                            SET task_status = 0
+                            WHERE uid = ?
+                            
+                            ''', (ctx.author.id,))
+                    conn.commit()
+                    conn.close()
 
                     button_view = ButtonView(ctx, link)
                     
