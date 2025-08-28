@@ -50,6 +50,7 @@ async def handle_create_task():
                 description = f"<@&{active_role_id}> new tasks assigned",
             )
     create_task_embed.set_author(name="Astrobot", icon_url=ASTROBOT_PROFILE_ASSET)
+    create_table()
     create_task()
     await announcement_channel.send(embed = create_task_embed)
         
@@ -269,7 +270,7 @@ class ButtonView(discord.ui.View):
     
     def __init__(self, ctx, link):
         
-        super()._-_init__(timeout=None)
+        super().__init__(timeout=None)
         self.author = ctx.author
         self.link = link
         self.embed = discord.Embed(
@@ -321,18 +322,6 @@ async def handle_submit(ctx, link):
     
     submit_channel_id = 1397207767898394755
     submit_channel = bot.get_channel(submit_channel_id)
-    
-    conn = sqlite3.connect(RELATIVE_DB_PATH)
-    c = conn.cursor()
-    c.execute('''
-              
-              UPDATE members 
-              SET task_status = 0
-              WHERE uid = ?
-              
-              ''', (ctx.author.id,))
-    conn.commit()
-    conn.close()
 
     def extract_doc_id(url):
         match = re.search(r'/d/([a-zA-Z0-9_-]+)', url)
@@ -343,19 +332,82 @@ async def handle_submit(ctx, link):
 
     if extract_doc_id(link):
         
-        submit_task(ctx.author.display_name)
+        conn = sqlite3.connect("mydb.sqlite")
+        cur = conn.cursor()
 
-        submitted_embed = discord.Embed(
-            title="Submitted your task!",
-            color=ctx.author.accent_color
-        )
-        submitted_embed.set_author(name="Astrobot", icon_url=ASTROBOT_PROFILE_ASSET)
-
-        await ctx.respond(embed=submitted_embed)
-
-        button_view = ButtonView(ctx, link)
+        cur.execute("SELECT EXISTS(SELECT 1 FROM your_table WHERE id = ?)", (ctx.author.id,))
+        exists = cur.fetchone()[0]  # will be 1 if it exists, 0 if not
         
-        await submit_channel.send(embed=button_view.embed, view=button_view)
+        if exists:
+            
+            with sqlite3.connect(RELATIVE_DB_PATH) as conn:
+    
+                c = conn.cursor()
+                c.execute("SELECT due_date, task_status, task_topic, task_type FROM members WHERE uid = ?", (ctx.author.id,))
+                row = c.fetchone()
+                
+            due_date = datetime.datetime.strptime(row[0], "%Y-%m-%d").date()
+            
+            if not row[2]:
+
+                no_tasks_now_embed = discord.Embed(
+                            title="No tasks right now. You'll be notified when tasks are assigned next!",
+                            color=ctx.author.accent_color
+                        )
+                no_tasks_now_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
+
+                await ctx.respond(embed=no_tasks_now_embed)
+		
+            else:
+
+                if row[1] == 0:
+                    
+                    submitted_embed = discord.Embed(
+                        title="You've Submitted your task! Nothing to do for now.",
+                        color=ctx.author.accent_color
+                    )
+                    submitted_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
+                    
+                    await ctx.respond(embed=submitted_embed)
+                    
+                else:
+        
+                    submit_task(ctx.author.display_name)
+
+                    submitted_embed = discord.Embed(
+                        title="Submitted your task!",
+                        color=ctx.author.accent_color
+                    )
+                    submitted_embed.set_author(name="Astrobot", icon_url=ASTROBOT_PROFILE_ASSET)
+
+                    await ctx.respond(embed=submitted_embed)
+                    
+                        conn = sqlite3.connect(RELATIVE_DB_PATH)
+                        c = conn.cursor()
+                        c.execute('''
+                                
+                                UPDATE members 
+                                SET task_status = 0
+                                WHERE uid = ?
+                                
+                                ''', (ctx.author.id,))
+                        conn.commit()
+                        conn.close()
+
+                    button_view = ButtonView(ctx, link)
+                    
+                    await submit_channel.send(embed=button_view.embed, view=button_view)
+                
+        else:
+            
+            error_embed = discord.Embed(
+                title="Oops! You're not a registered member.",
+                description="Please use /set-status to fix that!",
+                color=ctx.author.accent_color
+            )
+            error_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
+            
+            await ctx.respond(embed=error_embed)
         
     else:
         
@@ -376,3 +428,5 @@ async def handle_add_topics(ctx, ttype, name):
     member_embed.set_author(name="Astrobot", icon_url=ASTROBOT_PROFILE_ASSET)
 
     await ctx.respond(embed=member_embed)
+
+bot.run(TOKEN)
