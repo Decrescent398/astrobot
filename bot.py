@@ -28,7 +28,7 @@ bot = discord.Bot(intents=discord.Intents.all())
 @bot.event
 async def on_ready():
     print(colored("Bot is online", "green"))
-    # reminder_loop.start()
+    reminder_loop.start()
     handle_create_task.start()
     
 @bot.event
@@ -51,7 +51,7 @@ async def handle_create_task():
             )
     create_task_embed.set_author(name="Astrobot", icon_url=ASTROBOT_PROFILE_ASSET)
     create_task()
-    #await announcement_channel.send(embed = create_task_embed)
+    await announcement_channel.send(embed = create_task_embed)
         
 @tasks.loop(hours=12*24)
 async def reminder_loop():
@@ -364,8 +364,3 @@ async def handle_add_topics(ctx, ttype, name):
     member_embed.set_author(name="Astrobot", icon_url=ASTROBOT_PROFILE_ASSET)
 
     await ctx.respond(embed=member_embed)
-
-if __name__ == "__main__":
-# Run the bot
-    bot.run(TOKEN)
-    news_loop.start()
