@@ -221,13 +221,13 @@ async def handle_view_task(ctx):
             
             if not row[2]:
 
-            no_tasks_now_embed = discord.Embed(
-                        title="No tasks right now. You'll be notified when tasks are assigned next!",
-                        color=ctx.author.accent_color
-                    )
-                    submitted_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
+                no_tasks_now_embed = discord.Embed(
+                            title="No tasks right now. You'll be notified when tasks are assigned next!",
+                            color=ctx.author.accent_color
+                        )
+                        submitted_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
 
-                    await ctx.respond(embed=submitted_embed)
+                        await ctx.respond(embed=submitted_embed)
 		
             else:
 
