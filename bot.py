@@ -219,45 +219,57 @@ async def handle_view_task(ctx):
             
             due_date = datetime.datetime.strptime(row[0], "%Y-%m-%d").date()
             
-            if row[1] == 0:
-                
-                submitted_embed = discord.Embed(
-                    title="You've submitted your task! Nothing to do for now.",
-                    color=ctx.author.accent_color
-                )
-                submitted_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
-                
-                await ctx.respond(embed=submitted_embed)
-                
-            else:
-                
-                if due_date < datetime.date.today():
-                    
-                    overdue_embed = discord.Embed(
-                        title="Your task is overdue!",
+            if not row[2]:
+
+            no_tasks_now_embed = discord.Embed(
+                        title="No tasks right now. You'll be notified when tasks are assigned next!",
                         color=ctx.author.accent_color
                     )
-                    overdue_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
+                    submitted_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
+
+                    await ctx.respond(embed=submitted_embed)
+		
+            else:
+
+                if row[1] == 0:
                     
-                    await ctx.respond(embed=overdue_embed)
+                        submitted_embed = discord.Embed(
+                            title="You've Submitted your task! Nothing to do for now.",
+                        color=ctx.author.accent_color
+                    )
+                    submitted_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
+                    
+                    await ctx.respond(embed=submitted_embed)
                     
                 else:
                     
-                    task_embed = discord.Embed(
-                        title=f"{row[3]}: {row[2]}",
-                        description=f"Due in {due_date-datetime.date.today()}",
-                        color=ctx.author.accent_color
-                    )
-                    task_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
-                    
-                    await ctx.respond(embed=task_embed) 
+                    if due_date < datetime.date.today():
+                        
+                        overdue_embed = discord.Embed(
+                            title="Your task is overdue!",
+                            color=ctx.author.accent_color
+                        )
+                        overdue_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
+                        
+                        await ctx.respond(embed=overdue_embed)
+                        
+                    else:
+                        
+                        task_embed = discord.Embed(
+                            title=f"{row[3]}: {row[2]}",
+                            description=f"Due in {due_date-datetime.date.today()}",
+                            color=ctx.author.accent_color
+                        )
+                        task_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
+                        
+                        await ctx.respond(embed=task_embed) 
 
 
 class ButtonView(discord.ui.View):
     
     def __init__(self, ctx, link):
         
-        super().__init__(timeout=None)
+        super()._	_init__(timeout=None)
         self.author = ctx.author
         self.link = link
         self.embed = discord.Embed(
