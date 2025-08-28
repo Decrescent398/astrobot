@@ -234,7 +234,7 @@ async def handle_view_task(ctx):
                 if row[1] == 0:
                     
                     submitted_embed = discord.Embed(
-                            title="You've Submitted your task! Nothing to do for now.",
+                        title="You've Submitted your task! Nothing to do for now.",
                         color=ctx.author.accent_color
                     )
                     submitted_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
