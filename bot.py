@@ -233,7 +233,7 @@ async def handle_view_task(ctx):
 
                 if row[1] == 0:
                     
-                        submitted_embed = discord.Embed(
+                    submitted_embed = discord.Embed(
                             title="You've Submitted your task! Nothing to do for now.",
                         color=ctx.author.accent_color
                     )
