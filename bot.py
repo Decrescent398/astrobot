@@ -29,7 +29,7 @@ bot = discord.Bot(intents=discord.Intents.all())
 async def on_ready():
     print(colored("Bot is online", "green"))
     # reminder_loop.start()
-    # handle_create_task.start()
+    handle_create_task.start()
     
 @bot.event
 async def on_member_join(member):
@@ -47,11 +47,11 @@ async def handle_create_task():
     announcement_channel = bot.get_channel(announcement_channel_id)
     create_task_embed = discord.Embed(
                 title="Announcement!",
-                #description = f"<@&{active_role_id}> new tasks assigned",
+                description = f"<@&{active_role_id}> new tasks assigned",
             )
     create_task_embed.set_author(name="Astrobot", icon_url=ASTROBOT_PROFILE_ASSET)
     create_task()
-    await announcement_channel.send(embed = create_task_embed)
+    #await announcement_channel.send(embed = create_task_embed)
         
 @tasks.loop(hours=12*24)
 async def reminder_loop():
@@ -198,47 +198,60 @@ async def handle_set_status(ctx):
 @bot.slash_command(name="view-task", description="View your assigned tasks")
 async def handle_view_task(ctx):
     
-    try:
+    with sqlite3.connect(RELATIVE_DB_PATH) as conn:
         
-        if check_submit(ctx.author.display_name) == False:
+        c = conn.cursor()
+        c.execute("SELECT due_date, task_status, task_topic, task_type FROM members WHERE uid = ?", (ctx.author.id,))
+        row = c.fetchone()
+        
+        if not row:
             
-            if check_due(ctx.author.display_name) > 0:
-                task_embed = discord.Embed(
-                    title=view_task(ctx.author.display_name),
+            error_embed = discord.Embed(
+                title="Oops! You're not a registered member.",
+                description="Please use /set-status to fix that!",
+                color=ctx.author.accent_color
+            )
+            error_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
+            
+            await ctx.respond(embed=error_embed)
+            
+        else:
+            
+            due_date = datetime.datetime.strptime(row[0], "%Y-%m-%d").date()
+            
+            if row[1] == 0:
+                
+                submitted_embed = discord.Embed(
+                    title="You've submitted your task! Nothing to do for now.",
                     color=ctx.author.accent_color
                 )
-                task_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
+                submitted_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
                 
-                await ctx.respond(embed=task_embed)
+                await ctx.respond(embed=submitted_embed)
                 
             else:
                 
-                overdue_embed = discord.Embed(
-                    title="Your task is overdue!",
-                    color=ctx.author.accent_color
-                )
-                overdue_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
-                
-                await ctx.respond(embed=overdue_embed)
-        else:
-            
-            submitted_embed = discord.Embed(
-                title="You've submitted your task! Nothing to do for now.",
-                color=ctx.author.accent_color
-            )
-            submitted_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
-            
-            await ctx.respond(embed=submitted_embed)
+                if due_date < datetime.date.today():
+                    
+                    overdue_embed = discord.Embed(
+                        title="Your task is overdue!",
+                        color=ctx.author.accent_color
+                    )
+                    overdue_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
+                    
+                    await ctx.respond(embed=overdue_embed)
+                    
+                else:
+                    
+                    task_embed = discord.Embed(
+                        title=f"{row[3]}: {row[2]}",
+                        description=f"Due in {due_date-datetime.date.today()}",
+                        color=ctx.author.accent_color
+                    )
+                    task_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
+                    
+                    await ctx.respond(embed=task_embed) 
 
-    except FileNotFoundError:
-        
-        error_embed = discord.Embed(
-            title="Oops! You're not a registered member.",
-            color=ctx.author.accent_color
-        )
-        error_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
-        
-        await ctx.respond(embed=error_embed)
 
 class ButtonView(discord.ui.View):
     

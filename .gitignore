@@ -10,3 +10,4 @@ service_account.json
 data/
 cropped/
 test/
+store/

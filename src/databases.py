@@ -14,12 +14,12 @@ def create_table():
                 
                 CREATE TABLE IF NOT EXISTS members (
                 
-                uid BIGINT,
-                status TINYINT,
-                task_type TINYTEXT,
+                uid INTEGER PRIMARY KEY,
+                status INTEGER,
+                task_type TEXT,
                 task_topic TEXT,
-                task_status TINYINT,
-                due_date DATE
+                task_status INTEGER,
+                due_date TEXT
                     
                 )
                 
@@ -37,7 +37,7 @@ def add_member(uid):
         
         c.execute('''
                 
-                INSERT IGNORE INTO members (uid)
+                INSERT OR IGNORE INTO members (uid)
                 VALUES (?)
                 
                 ''', (uid,))
@@ -78,7 +78,7 @@ def create_task():
                     SET task_type = ?,
                         due_date = ?,
                         task_topic = ?,
-                        task_status = 1,
+                        task_status = 1
                     WHERE uid = ? AND status = 1;
                     
                     ''',(ttd[0], ttd[1], get_topic(ttd[0]), member_id))
