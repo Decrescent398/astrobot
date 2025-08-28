@@ -50,10 +50,11 @@ def update_status(uid, status):
         
         c.execute('''
                   
-                  UPDATE members SET status = ?
-                  WHERE uid = ?
+                  INSERT INTO members (uid, status)
+                  VALUES (?, ?)
+                  ON CONFLICT(uid) DO UPDATE SET status=excluded.status;
                   
-                  ''', (status, uid))
+                  ''', (uid, status))
         
         con.commit()
         

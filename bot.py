@@ -335,7 +335,7 @@ async def handle_submit(ctx, link):
         conn = sqlite3.connect("mydb.sqlite")
         cur = conn.cursor()
 
-        cur.execute("SELECT EXISTS(SELECT 1 FROM your_table WHERE id = ?)", (ctx.author.id,))
+        cur.execute("SELECT EXISTS(SELECT 1 FROM members WHERE id = ?)", (ctx.author.id,))
         exists = cur.fetchone()[0]  # will be 1 if it exists, 0 if not
         
         if exists:
