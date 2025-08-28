@@ -269,7 +269,7 @@ class ButtonView(discord.ui.View):
     
     def __init__(self, ctx, link):
         
-        super()._	_init__(timeout=None)
+        super()._-_init__(timeout=None)
         self.author = ctx.author
         self.link = link
         self.embed = discord.Embed(
