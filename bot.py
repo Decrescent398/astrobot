@@ -200,7 +200,7 @@ async def handle_set_status(ctx):
 @bot.slash_command(name="view-task", description="View your assigned tasks")
 async def handle_view_task(ctx):
     
-    ctx.defer()
+    await ctx.defer()
     
     with sqlite3.connect(RELATIVE_DB_PATH) as conn:
         
@@ -322,8 +322,6 @@ class ButtonView(discord.ui.View):
 
 @bot.slash_command(name="submit", description="Submit your tasks", guild_ids=[GUILD_ID])
 async def handle_submit(ctx, link):
-    
-    await ctx.defer()
     
     submit_channel_id = 1397207767898394755
     submit_channel = bot.get_channel(submit_channel_id)
