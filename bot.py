@@ -323,7 +323,7 @@ class ButtonView(discord.ui.View):
 @bot.slash_command(name="submit", description="Submit your tasks", guild_ids=[GUILD_ID])
 async def handle_submit(ctx, link):
     
-    ctx.defer()
+    await ctx.defer()
     
     submit_channel_id = 1397207767898394755
     submit_channel = bot.get_channel(submit_channel_id)
