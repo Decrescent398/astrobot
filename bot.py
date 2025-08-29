@@ -42,7 +42,7 @@ async def on_member_join(member):
 @tasks.loop(hours=14*24)
 async def handle_create_task():
             
-    announcement_channel_id = 1393901179490275491
+    announcement_channel_id = 1394020514804273163 #1393901179490275491 
     active_role_id = 1393515184072691794
     announcement_channel = bot.get_channel(announcement_channel_id)
     create_task_embed = discord.Embed(
@@ -50,13 +50,12 @@ async def handle_create_task():
                 description = f"<@&{active_role_id}> new tasks assigned",
             )
     create_task_embed.set_author(name="Astrobot", icon_url=ASTROBOT_PROFILE_ASSET)
-    create_table()
     create_task()
     await announcement_channel.send(embed = create_task_embed)
         
 @tasks.loop(hours=12*24)
 async def reminder_loop():
-    announcement_channel_id = 1393901179490275491
+    announcement_channel_id = 1394020514804273163 #1393901179490275491
     active_role_id = 1393515184072691794
     announcement_channel = bot.get_channel(announcement_channel_id)
     create_task_embed = discord.Embed(
@@ -141,6 +140,7 @@ class SetStatusView(discord.ui.View):
             
             user_channel = await self.member.guild.create_text_channel(self.member.display_name, category=self.active_category)  # Store the created channel
             self.channel_exists = True
+            add_member(uid=self.member.id)
         
         await bot.wait_until_ready()
         perms = discord.PermissionOverwrite(view_channel=True, send_messages=True)
@@ -182,6 +182,7 @@ class SetStatusView(discord.ui.View):
             
             user_channel = await self.member.guild.create_text_channel(self.member.display_name, category=self.inactive_category)  # Store the created channel
             self.channel_exists = True
+            add_member(uid=self.member.id)
 
         await bot.wait_until_ready()
         perms = discord.PermissionOverwrite(view_channel=True, send_messages=True)
@@ -199,6 +200,8 @@ async def handle_set_status(ctx):
 @bot.slash_command(name="view-task", description="View your assigned tasks")
 async def handle_view_task(ctx):
     
+    ctx.defer()
+    
     with sqlite3.connect(RELATIVE_DB_PATH) as conn:
         
         c = conn.cursor()
@@ -214,11 +217,9 @@ async def handle_view_task(ctx):
             )
             error_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
             
-            await ctx.respond(embed=error_embed)
+            await ctx.followup.send(embed=error_embed)
             
         else:
-            
-            due_date = datetime.datetime.strptime(row[0], "%Y-%m-%d").date()
             
             if not row[2]:
 
@@ -228,7 +229,7 @@ async def handle_view_task(ctx):
                         )
                 no_tasks_now_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
 
-                await ctx.respond(embed=no_tasks_now_embed)
+                await ctx.followup.send(embed=no_tasks_now_embed)
 		
             else:
 
@@ -240,9 +241,11 @@ async def handle_view_task(ctx):
                     )
                     submitted_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
                     
-                    await ctx.respond(embed=submitted_embed)
+                    await ctx.followup.send(embed=submitted_embed)
                     
                 else:
+                    
+                    due_date = datetime.datetime.strptime(row[0], "%Y-%m-%d").date()
                     
                     if due_date < datetime.date.today():
                         
@@ -252,7 +255,7 @@ async def handle_view_task(ctx):
                         )
                         overdue_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
                         
-                        await ctx.respond(embed=overdue_embed)
+                        await ctx.followup.send(embed=overdue_embed)
                         
                     else:
                         
@@ -263,7 +266,7 @@ async def handle_view_task(ctx):
                         )
                         task_embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar)
                         
-                        await ctx.respond(embed=task_embed) 
+                        await ctx.followup.send(embed=task_embed) 
 
 
 class ButtonView(discord.ui.View):
@@ -320,6 +323,8 @@ class ButtonView(discord.ui.View):
 @bot.slash_command(name="submit", description="Submit your tasks", guild_ids=[GUILD_ID])
 async def handle_submit(ctx, link):
     
+    ctx.defer()
+    
     submit_channel_id = 1397207767898394755
     submit_channel = bot.get_channel(submit_channel_id)
 
@@ -332,7 +337,7 @@ async def handle_submit(ctx, link):
 
     if extract_doc_id(link):
         
-        conn = sqlite3.connect("mydb.sqlite")
+        conn = sqlite3.connect("data/members.db")
         cur = conn.cursor()
 
         cur.execute("SELECT EXISTS(SELECT 1 FROM members WHERE id = ?)", (ctx.author.id,))
