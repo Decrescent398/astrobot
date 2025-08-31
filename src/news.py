@@ -18,7 +18,7 @@ from particlescraper.particlescraper.spiders.newsscraper import NewsScraper
 OUTPUT_FOLDER = Path("data/out/")
 METADATA_PATH = OUTPUT_FOLDER / "meta"
 ARTICLE_DATA_PATH = OUTPUT_FOLDER / "articles"
-PARTICLE_IMAGE_ASSET = Path("C:/Users/hridd/Desktop/Docs/Codespace/Astrobot/assets/poweredbyparticle.png")
+PARTICLE_IMAGE_ASSET = Path("assets/poweredbyparticle.png")
 
 async def news():
     
@@ -33,16 +33,11 @@ async def news():
             shutil.rmtree(ARTICLE_DATA_PATH / article_dir)
     
     yesterday_date = (datetime.date.today() - datetime.timedelta(1)).strftime("%d %b %Y")
-
-    """Main news function that starts news scraping."""
-    # crawler_process = CrawlerProcess(get_project_settings())
-    # crawler_process.crawl(NewsScraper)
-    # crawler_process.start()
     
     await asyncio.to_thread(
         subprocess.run,
         [sys.executable, "-m", "scrapy", "crawl", "particle"],
-        cwd="C:/Users/hridd/Desktop/Docs/Codespace/Astrobot/particlescraper",
+        cwd="particlescraper",
         check=True
     )
 

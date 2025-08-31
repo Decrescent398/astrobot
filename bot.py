@@ -42,7 +42,7 @@ async def on_member_join(member):
 @tasks.loop(hours=14*24)
 async def handle_create_task():
             
-    announcement_channel_id = 1394020514804273163 #1393901179490275491 
+    announcement_channel_id = 1393901179490275491 
     active_role_id = 1393515184072691794
     announcement_channel = bot.get_channel(announcement_channel_id)
     create_task_embed = discord.Embed(
@@ -55,7 +55,7 @@ async def handle_create_task():
         
 @tasks.loop(hours=12*24)
 async def reminder_loop():
-    announcement_channel_id = 1394020514804273163 #1393901179490275491
+    announcement_channel_id = 1393901179490275491
     active_role_id = 1393515184072691794
     announcement_channel = bot.get_channel(announcement_channel_id)
     create_task_embed = discord.Embed(

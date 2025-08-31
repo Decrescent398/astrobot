@@ -34,6 +34,6 @@ class NewsScraper(scrapy.Spider):
             'image-links': [svg.attrib['xlink:href'] for svg in items.css('svg.image-pile g image')]
             }
             )
-        with open(f"C:/Users/hridd/Desktop/Docs/Codespace/Astrobot/data/out/meta/news-output-{datetime.date.today()}.json", 'a') as f:
+        with open(f"/home/decrescent/astrobot-sql-final/data/out/meta/news-output-{datetime.date.today()}.json", 'a') as f:
             for item in data:
                 f.write(json.dumps(item) + '\n')
